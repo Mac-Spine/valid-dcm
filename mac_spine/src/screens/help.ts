@@ -5,6 +5,13 @@ import { APP_VERSION, INTENDED_USE_STATEMENT } from '../constants';
 import { getProfile } from '../core/db';
 import { getDeviceOS, getBrowserInfo, isStandalone } from '../utils/device';
 import { showInstallPrompt } from '../services/install-service';
+import {
+  GRIP_HELP_SUMMARY,
+  GRIP_INSTRUCTION_STEPS,
+  TUG_HELP_SUMMARY,
+  TUG_INSTRUCTION_STEPS,
+  TUG_TROUBLESHOOTING,
+} from '../content/assessment-instructions';
 import { router } from '../main';
 
 export async function renderHelp(container: HTMLElement): Promise<void> {
@@ -57,16 +64,12 @@ export async function renderHelp(container: HTMLElement): Promise<void> {
 
   const faqs = [
     {
-      q: 'Why aren\'t my taps counting?',
-      a: 'Make sure you lift your finger completely between each tap. Using two fingers or holding your finger down will not count. Each tap must be a single finger touch.',
-    },
-    {
       q: 'Why aren\'t my grips counting?',
-      a: 'You need to place 3 or more fingers on the screen at once to register a grip. Open your fingers completely between each grip so the phone detects a full release before the next one.',
+      a: GRIP_HELP_SUMMARY,
     },
     {
       q: 'The TUG test isn\'t detecting my movements. What should I do?',
-      a: 'Make sure the phone is placed securely in your front trouser pocket with the screen on. Do not turn off the screen during the test. Run the Sensor Calibration from the instructions page to verify your sensors are working.',
+      a: TUG_TROUBLESHOOTING,
     },
     {
       q: 'My data isn\'t syncing. What should I do?',
@@ -86,25 +89,18 @@ export async function renderHelp(container: HTMLElement): Promise<void> {
   // Test Instructions
   main.appendChild(createElement('h2', { textContent: 'Test Instructions' }));
   const instructions = createElement('div', { className: 'help-screen__section' });
-  instructions.innerHTML = `
-    <p><strong>Grip &amp; Release Test</strong> (10 seconds)</p>
-    <p>Grip the phone with 3+ fingers, release fully, and repeat as fast as you can.</p>
-    <ul>
-      <li>Rest the phone in your palm, screen up, hand on a flat surface</li>
-      <li>Curl your fingers onto the screen to grip</li>
-      <li>Open your fingers completely before each new grip</li>
-    </ul>
-
-    <p><strong>Timed Up &amp; Go</strong></p>
-    <p>A sensor-based walking test with the phone in your pocket.</p>
-    <ul>
-      <li>Do not turn off the screen during the test</li>
-      <li>Place the phone in your front trouser pocket</li>
-      <li>Sit in a chair, sit still, and the test starts automatically</li>
-      <li>Stand up, walk 3 meters, turn around, walk back, and sit down</li>
-      <li>Remain still after sitting &mdash; an end tone marks the end of the test</li>
-    </ul>
-  `;
+  appendInstructionSummary(
+    instructions,
+    'Grip & Release Test',
+    GRIP_HELP_SUMMARY,
+    GRIP_INSTRUCTION_STEPS,
+  );
+  appendInstructionSummary(
+    instructions,
+    'Timed Up & Go',
+    TUG_HELP_SUMMARY,
+    TUG_INSTRUCTION_STEPS,
+  );
   main.appendChild(instructions);
 
   // Report a Problem
@@ -133,6 +129,28 @@ export async function renderHelp(container: HTMLElement): Promise<void> {
 
   container.appendChild(header);
   container.appendChild(main);
+}
+
+function appendInstructionSummary(
+  container: HTMLElement,
+  title: string,
+  summary: string,
+  steps: readonly string[],
+): void {
+  const heading = createElement('h3', {
+    className: 'help-screen__instruction-title',
+    textContent: title,
+  });
+  const description = createElement('p', { textContent: summary });
+  const list = createElement('ol', { className: 'help-screen__instruction-list' });
+
+  for (const step of steps) {
+    list.appendChild(createElement('li', { textContent: step }));
+  }
+
+  container.appendChild(heading);
+  container.appendChild(description);
+  container.appendChild(list);
 }
 
 const style = document.createElement('style');
@@ -176,13 +194,24 @@ style.textContent = `
     line-height: var(--line-height-relaxed);
     color: var(--color-text-secondary);
   }
-  .help-screen__section ul {
+  .help-screen__instruction-title {
+    margin-top: var(--space-5);
+    margin-bottom: var(--space-2);
+    color: var(--color-text);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+  }
+  .help-screen__instruction-title:first-child {
+    margin-top: 0;
+  }
+  .help-screen__instruction-list {
     padding-left: var(--space-6);
-    list-style: disc;
+    list-style: decimal;
     margin: var(--space-2) 0;
   }
-  .help-screen__section li {
-    margin-bottom: var(--space-1);
+  .help-screen__instruction-list li {
+    margin-bottom: var(--space-2);
+    padding-left: var(--space-1);
   }
   .help-screen__report-btn {
     display: flex;

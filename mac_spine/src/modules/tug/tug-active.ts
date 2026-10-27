@@ -440,60 +440,54 @@ export async function renderTugActive(container: HTMLElement): Promise<void> {
     console.error('Incremental save failed:', err);
   }
 
-  // Show GO signal
+  // Start timing and sensing at the GO cue, after the placement buffer.
+  running = true;
+  startTime = performance.now();
+  engine.start();
+  window.addEventListener('devicemotion', motionHandler);
   goSignal.style.display = 'flex';
   audioManager.play('go');
   if (supportsVibration()) vibrate(30);
 
-  setTimeout(() => {
-    goSignal.style.display = 'none';
-    running = true;
-    startTime = performance.now();
+  setTimeout(() => { goSignal.style.display = 'none'; }, 500);
 
-    // Start sensor engine
-    engine.start();
+  // Timer display
+  timerInterval = setInterval(() => {
+    if (!running) return;
+    const elapsed = performance.now() - startTime;
+    timerDisplay.textContent = formatTime(elapsed);
+  }, 100);
 
-    // Start DeviceMotion listener
-    window.addEventListener('devicemotion', motionHandler);
+  // Incremental saves
+  saveInterval = setInterval(async () => {
+    if (!running) return;
+    const elapsed = performance.now() - startTime;
+    try {
+      await saveResult({
+        local_uuid: localUuid,
+        participant_id: profile.participant_id,
 
-    // Timer display
-    timerInterval = setInterval(() => {
-      if (!running) return;
-      const elapsed = performance.now() - startTime;
-      timerDisplay.textContent = formatTime(elapsed);
-    }, 100);
+        timestamp_start: sessionStartISO,
+        task_type: 'tug_v1',
+        status: 'in_progress',
+        session_metadata: sessionMetadata,
+        raw_data: [...rawTimerEvents, ...rawMotionEvents],
+        computed_metrics: { duration_actual_ms: Math.round(elapsed), tug_time_s: 0 },
+        flagged: false,
+        flag_reason: null,
+        synced: false,
+        sync_attempts: 0,
+        checksum: '',
+      });
+    } catch (err) {
+      console.error('Incremental sensor save failed:', err);
+    }
+  }, TUG_SENSOR_SAVE_INTERVAL_MS);
 
-    // Incremental saves
-    saveInterval = setInterval(async () => {
-      if (!running) return;
-      const elapsed = performance.now() - startTime;
-      try {
-        await saveResult({
-          local_uuid: localUuid,
-          participant_id: profile.participant_id,
-    
-          timestamp_start: sessionStartISO,
-          task_type: 'tug_v1',
-          status: 'in_progress',
-          session_metadata: sessionMetadata,
-          raw_data: [...rawTimerEvents, ...rawMotionEvents],
-          computed_metrics: { duration_actual_ms: Math.round(elapsed), tug_time_s: 0 },
-          flagged: false,
-          flag_reason: null,
-          synced: false,
-          sync_attempts: 0,
-          checksum: '',
-        });
-      } catch (err) {
-        console.error('Incremental sensor save failed:', err);
-      }
-    }, TUG_SENSOR_SAVE_INTERVAL_MS);
-
-    // Safety timeout
-    safetyTimeout = setTimeout(() => {
-      if (running) endAssessment(true, false);
-    }, TUG_MAX_DURATION_MS);
-  }, 500);
+  // Safety timeout
+  safetyTimeout = setTimeout(() => {
+    if (running) endAssessment(true, false);
+  }, TUG_MAX_DURATION_MS);
 }
 
 const style = document.createElement('style');

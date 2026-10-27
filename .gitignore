@@ -2,4 +2,28 @@
 .claude/
 local.settings.json
 .dev.vars
-assets-original/
+
+# Local certificates and credentials must never be published.
+.certs/
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local reference archives and historical planning notes.
+/MEMORIES/
+/assets-original/
+/docs/conversation-summaries/
+/docs/illustration-originals/
+/docs/github-migration-review.md
+/docs/ios-app-store-migration.md
+/docs/ui-review-requirements.md
+/docs/mmat_prd_v1.md
+/docs/mmat_prd_v2.md
+/docs/mmat_prd_v3.md
+/docs/server_request.md
+/mac_spine/startup.txt

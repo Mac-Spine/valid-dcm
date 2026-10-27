@@ -77,7 +77,15 @@ export async function getProfile(): Promise<UserProfile | undefined> {
     const database = getDB();
     const tx = database.transaction('user_profile', 'readonly');
     const store = tx.objectStore('user_profile');
-    return await promisifyRequest(store.get('current'));
+    const profile = await promisifyRequest<UserProfile | undefined>(store.get('current'));
+    // Retire legacy chest templates without removing historical assessment data.
+    if (profile?.tug_step_calibration &&
+        profile.tug_step_calibration.placement !== 'front_trouser_pocket') {
+      delete profile.tug_step_calibration;
+      profile.updated_at = new Date().toISOString();
+      await saveProfile(profile);
+    }
+    return profile;
   } catch (err) {
     console.error('getProfile error:', err);
     return undefined;

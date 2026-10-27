@@ -21,9 +21,20 @@ export function renderTugSetup(container: HTMLElement): void {
   main.setAttribute('role', 'main');
 
   // Space requirement notice
-  const notice = createElement('p', { className: 'assessment-setup__notice' });
+  const notice = createElement('p', {
+    className: 'assessment-setup__notice tug-setup__notice',
+  });
   notice.textContent = 'Please ensure you have a chair, and at least 3 metres of space to complete this test.';
   main.appendChild(notice);
+
+  const setupVisual = createElement('img', {
+    className: 'tug-setup__visual',
+    alt: 'Person seated with a phone in a front trouser pocket and three metres of clear space ahead; use your usual gait aid if needed, illustrated by a walker, cane, and crutches',
+  }) as HTMLImageElement;
+  setupVisual.src = `${import.meta.env.BASE_URL}images/tug-setup.png`;
+  setupVisual.width = 1536;
+  setupVisual.height = 1024;
+  main.appendChild(setupVisual);
 
   // Walking aid selection
   const aidSection = createElement('section', { className: 'assessment-setup__section' });
@@ -82,3 +93,19 @@ export function renderTugSetup(container: HTMLElement): void {
   container.appendChild(header);
   container.appendChild(main);
 }
+
+const style = document.createElement('style');
+style.textContent = `
+  .tug-setup__notice {
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-relaxed);
+  }
+
+  .tug-setup__visual {
+    display: block;
+    width: 75%;
+    height: auto;
+    margin: calc(var(--space-4) * -1) auto 0;
+  }
+`;
+document.head.appendChild(style);

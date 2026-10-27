@@ -7,6 +7,7 @@ export interface UserPreferences {
 }
 
 export interface TugStepCalibration {
+  placement?: 'front_trouser_pocket'; // absent on legacy chest calibrations
   template: number[];              // normalized mean W template (zero-mean, unit-norm)
   template_dt_ms: number;          // sample spacing of template
   correlation_floor: number;       // runtime correlation must exceed this to count as a step

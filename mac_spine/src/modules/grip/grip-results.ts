@@ -1,6 +1,6 @@
 import { clearContainer, createElement } from '../../utils/dom';
 import { createButton } from '../../components/button';
-import { createSaveDiscardSlider } from '../../components/save-discard-slider';
+import { createResultDecision } from '../../components/result-decision';
 import { showDiscardDialog } from '../../components/discard-dialog';
 import { getAllResults, saveResult, addAuditEntry } from '../../core/db';
 import { getRhythmLabel } from './grip-metrics';
@@ -66,9 +66,7 @@ export async function renderGripResults(container: HTMLElement): Promise<void> {
         r.status === 'complete' &&
         !r.flagged,
     )
-    .sort(
-      (a, b) => new Date(b.timestamp_start).getTime() - new Date(a.timestamp_start).getTime(),
-    );
+    .sort((a, b) => new Date(b.timestamp_start).getTime() - new Date(a.timestamp_start).getTime());
 
   if (previousResults.length >= 1) {
     const lastSession = previousResults[0];
@@ -160,7 +158,7 @@ export async function renderGripResults(container: HTMLElement): Promise<void> {
   wrapper.appendChild(metricsSection);
 
   if (discardLimitReached) {
-    // Auto-save — no slider
+    // Auto-save — no decision controls
     const banner = createElement('div', {
       className: 'assessment-results__discard-limit-banner',
       textContent: `Daily discard limit reached (${MAX_DAILY_DISCARDS}/${MAX_DAILY_DISCARDS}) — session saved automatically.`,
@@ -174,13 +172,13 @@ export async function renderGripResults(container: HTMLElement): Promise<void> {
   } else {
     wrapper.appendChild(counter);
 
-    const slider = createSaveDiscardSlider({
+    const decision = createResultDecision({
       onSave: doSave,
       onDiscard: doDiscard,
       requestDiscardReason: showDiscardDialog,
     });
 
-    wrapper.appendChild(slider);
+    wrapper.appendChild(decision);
     wrapper.appendChild(syncStatus);
     wrapper.appendChild(homeBtn);
     wrapper.appendChild(againBtn);
@@ -194,10 +192,13 @@ function showSyncFeedback(el: HTMLElement, localUuid: string): void {
 
   if (!navigator.onLine) {
     el.classList.add('assessment-results__sync--offline');
-    el.textContent = 'No internet connection. Your data is saved and will sync automatically when you reconnect.';
+    el.textContent =
+      'No internet connection. Your data is saved and will sync automatically when you reconnect.';
     setTimeout(() => {
       el.classList.add('assessment-results__sync--fade-out');
-      setTimeout(() => { el.style.display = 'none'; }, 300);
+      setTimeout(() => {
+        el.style.display = 'none';
+      }, 300);
     }, 3500);
     return;
   }
@@ -213,7 +214,8 @@ function showSyncFeedback(el: HTMLElement, localUuid: string): void {
       } else {
         const err = mod.lastSyncError;
         el.classList.add('assessment-results__sync--error');
-        el.textContent = err ?? 'Sync failed. Your data is saved locally — try again from the home screen.';
+        el.textContent =
+          err ?? 'Sync failed. Your data is saved locally — try again from the home screen.';
       }
     })
     .catch(() => {
@@ -224,7 +226,11 @@ function showSyncFeedback(el: HTMLElement, localUuid: string): void {
 
 function createMetricCard(label: string, value: string): HTMLElement {
   const card = createElement('div', { className: 'assessment-results__metric-card' });
-  card.appendChild(createElement('span', { className: 'assessment-results__metric-label', textContent: label }));
-  card.appendChild(createElement('span', { className: 'assessment-results__metric-value', textContent: value }));
+  card.appendChild(
+    createElement('span', { className: 'assessment-results__metric-label', textContent: label }),
+  );
+  card.appendChild(
+    createElement('span', { className: 'assessment-results__metric-value', textContent: value }),
+  );
   return card;
 }

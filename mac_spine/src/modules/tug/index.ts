@@ -1,6 +1,12 @@
-import type { AssessmentModule, RawSessionData, ComputedMetrics, InstructionConfig, MetadataField } from '../../types/assessment';
+import type {
+  AssessmentModule,
+  RawSessionData,
+  ComputedMetrics,
+  InstructionConfig,
+  MetadataField,
+} from '../../types/assessment';
 import type { AssessmentResult } from '../../types/db-schemas';
-import { computeTugMetrics, getClinicalBand, getClinicalLabel } from './tug-metrics';
+import { computeTugMetrics } from './tug-metrics';
 import { WALKING_AID_LABELS } from './tug-types';
 import { renderTugSetup } from './tug-setup';
 import { renderTugInstructions } from './tug-instructions';
@@ -68,17 +74,22 @@ export const tugModule: AssessmentModule = {
     { key: 'walk_out_gait_speed_mps', label: 'Gait Speed', unit: 'm/s', higherIsBetter: true },
     { key: 'walk_out_cadence_spm', label: 'Cadence', unit: 'spm', higherIsBetter: true },
     { key: 'walk_out_avg_stride_length_m', label: 'Avg Stride', unit: 'm', higherIsBetter: true },
-    { key: 'time_to_first_step_ms', label: 'Time to first step', unit: 'ms', higherIsBetter: false },
+    {
+      key: 'time_to_first_step_ms',
+      label: 'Time to first step',
+      unit: 'ms',
+      higherIsBetter: false,
+    },
   ],
 
   getInstructions(): InstructionConfig {
     return {
       title: 'Timed Up & Go',
-      body: 'Hold the phone against your sternum and the app automatically detects each phase of the walk test.',
+      body: 'Keep the phone in your front trouser pocket and the app will automatically detect each phase of the test.',
       importantPoints: [
-        'Hold the phone flat against the center of your chest (sternum)',
+        'Place the phone fully inside a front trouser pocket.',
         'Start seated in a chair with your back against the chair',
-        'Sit still — the test starts automatically after 3 seconds',
+        'Press Start, put the phone in your pocket within 3 seconds, and stay seated until the start tone',
         'Walk at a comfortable, safe pace',
         'You may use a walking aid if needed',
       ],
@@ -119,15 +130,9 @@ export const tugModule: AssessmentModule = {
   getHistorySummary(result: AssessmentResult): string {
     const m = result.computed_metrics;
     const timeS = m.tug_time_s ?? 0;
-    const band = getClinicalBand(timeS);
-    const bandLabel = getClinicalLabel(band);
     const aid = WALKING_AID_LABELS[result.session_metadata.walking_aid ?? 'none'] ?? 'no aid';
 
-    let summary = `${timeS.toFixed(1)}s • ${bandLabel} • ${aid}`;
-    if (m.walk_out_cadence_spm) {
-      summary += ` • ${Math.round(m.walk_out_cadence_spm)} spm`;
-    }
-    return summary;
+    return `${timeS.toFixed(1)}s • ${aid}`;
   },
 
   getSparklineValue(result: AssessmentResult): number {

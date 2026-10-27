@@ -34,12 +34,11 @@ export const TUG_WEINBERG_K = 0.45;
 // TUG Sensor — Data management
 export const TUG_SENSOR_SAVE_INTERVAL_MS = 3000;
 export const TUG_CALIBRATION_SAMPLES = 60;
-export const TUG_STILLNESS_ACCEL_TOLERANCE = 0.5;    // m/s² from gravity magnitude
-export const TUG_STILLNESS_DURATION_MS = 3000;        // 3 seconds of stillness to auto-start
 
 // TUG step calibration (template-matching)
 export const TUG_STEP_CAL_EXPECTED_STEPS = 5;          // per batch
-export const TUG_STEP_CAL_PREP_COUNTDOWN_MS = 3000;
+export const TUG_POCKET_PLACEMENT_BUFFER_MS = 3000;
+export const TUG_STEP_CAL_PREP_COUNTDOWN_MS = TUG_POCKET_PLACEMENT_BUFFER_MS;
 
 // Template shape & sampling
 export const TUG_TEMPLATE_LEN = 36;                    // samples per template
@@ -61,7 +60,7 @@ export const TUG_TEMPLATE_TARGET_STEPS = 20;           // ideal minimum accepted
 export const TUG_TEMPLATE_SOFT_ALLOW_STEPS = 15;       // below this, only "Walk 5 more" is offered; above, Save is allowed
 
 // Calibration auto-terminate (stillness detection)
-export const TUG_CAL_BASELINE_WINDOW_MS = 1000;        // last N ms of countdown used as noise baseline
+export const TUG_CAL_BASELINE_WINDOW_MS = 1000;        // stationary noise baseline collected after pocket-placement buffer
 export const TUG_CAL_STILLNESS_WINDOW_MS = 1000;       // sliding std window during recording
 export const TUG_CAL_WALK_ON_RATIO = 4.0;              // std > N × baseline_std → walking has started
 export const TUG_CAL_WALK_OFF_RATIO = 2.0;             // std < N × baseline_std (sustained) → walking has ended

@@ -15,7 +15,7 @@ export function renderGripPractice(container: HTMLElement): void {
     <h1>Practice Round</h1>
     <p>Let's do a quick 5-second practice first. This won't be saved.</p>
     <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
-      Hold the phone sideways in your palm and grip with ${GRIP_MIN_FINGERS} fingers, then release.
+      Hold the phone flat in your palm and grip with ${GRIP_MIN_FINGERS}+ fingers, then release completely.
     </p>
   `;
 
@@ -59,7 +59,7 @@ function runPractice(wrapper: HTMLElement): void {
   // Finger count display
   const fingerCount = createElement('div', {
     className: 'grip-practice__finger-count',
-    textContent: 'Touch with 4 fingers',
+    textContent: `Touch with ${GRIP_MIN_FINGERS}+ fingers`,
   });
 
   let gripCount = 0;

@@ -1,23 +1,12 @@
 import { clearContainer, createElement } from '../../utils/dom';
 import { createButton } from '../../components/button';
-import { createSaveDiscardSlider } from '../../components/save-discard-slider';
+import { createResultDecision } from '../../components/result-decision';
 import { showDiscardDialog } from '../../components/discard-dialog';
-import { getAllResults, getProfile, saveResult, addAuditEntry } from '../../core/db';
-import { getClinicalBand, getClinicalLabel } from './tug-metrics';
+import { getAllResults, saveResult, addAuditEntry } from '../../core/db';
 import { WALKING_AID_LABELS } from './tug-types';
-import {
-  getNormativeForAge,
-  getTrafficLight,
-  describeBand,
-  TUG_FALL_RISK_S,
-  type TrafficLight,
-} from './tug-normative';
-import { computeAge } from '../../utils/age';
 import { lastTugResult } from './tug-active';
 import { router } from '../../main';
 import type { AssessmentResult } from '../../types/db-schemas';
-import { replayMotionForVisualization, buildAccelSparkline, ensureSparkStyles } from './tug-template';
-import { isMotionEvent } from '../../types/assessment';
 
 const MAX_DAILY_DISCARDS = 2;
 
@@ -31,18 +20,6 @@ function countTodayDiscards(results: AssessmentResult[], taskPrefix: string): nu
   ).length;
 }
 
-const TRAFFIC_COLORS: Record<TrafficLight, { bg: string; text: string; label: string }> = {
-  green:  { bg: '#E8F0EB', text: '#0E5B3D', label: 'Within typical range' },
-  yellow: { bg: '#FEF5E5', text: '#8B6914', label: 'Above typical range' },
-  red:    { bg: '#F9E8EC', text: '#7A003C', label: 'Fall-risk threshold' },
-};
-
-const BAND_COLORS: Record<string, { bg: string; text: string }> = {
-  normal: { bg: '#E8F0EB', text: '#0E5B3D' },
-  moderate_risk: { bg: '#FEF5E5', text: '#8B6914' },
-  high_risk: { bg: '#F9E8EC', text: '#7A003C' },
-};
-
 export async function renderTugResults(container: HTMLElement): Promise<void> {
   clearContainer(container);
 
@@ -54,18 +31,11 @@ export async function renderTugResults(container: HTMLElement): Promise<void> {
   const result = lastTugResult;
   const m = result.computed_metrics;
   const timeS = m.tug_time_s;
-  const band = getClinicalBand(timeS);
-  const bandLabel = getClinicalLabel(band);
-  const bandColors = BAND_COLORS[band];
-
-  const profile = await getProfile();
-  const age = computeAge(profile?.date_of_birth);
-  const normative = getNormativeForAge(age);
-  const traffic = getTrafficLight(timeS, age);
-  const trafficColors = TRAFFIC_COLORS[traffic];
 
   // Release wake lock if still held
-  const wl = (window as unknown as Record<string, unknown>).__tugWakeLock as WakeLockSentinel | undefined;
+  const wl = (window as unknown as Record<string, unknown>).__tugWakeLock as
+    | WakeLockSentinel
+    | undefined;
   if (wl) {
     wl.release().catch(() => {});
     delete (window as unknown as Record<string, unknown>).__tugWakeLock;
@@ -81,70 +51,20 @@ export async function renderTugResults(container: HTMLElement): Promise<void> {
 
   const metricsSection = createElement('section', { className: 'assessment-results__metrics' });
 
-  // ── Headline time + traffic light pill ──────────────────────
+  // ── Headline time ────────────────────────────────────────────
   const headline = createElement('div', { className: 'tug-results__headline' });
-  headline.style.background = trafficColors.bg;
-  const timeRow = createElement('div', { className: 'tug-results__time-row' });
   const timeBig = createElement('span', {
     className: 'tug-results__time-big',
     textContent: `${timeS.toFixed(1)}s`,
   });
-  timeBig.style.color = trafficColors.text;
-  const pill = createElement('span', {
-    className: 'tug-results__pill',
-    textContent: trafficColors.label,
-  });
-  pill.style.color = trafficColors.text;
-  pill.style.borderColor = trafficColors.text;
-  timeRow.appendChild(timeBig);
-  timeRow.appendChild(pill);
-  headline.appendChild(createElement('span', {
-    className: 'tug-results__label',
-    textContent: 'Your TUG time',
-  }));
-  headline.appendChild(timeRow);
-  metricsSection.appendChild(headline);
-
-  // ── Normative comparison ─────────────────────────────────────
-  const normCard = createElement('div', { className: 'tug-results__normative' });
-  if (normative) {
-    const text = createElement('div', { textContent: describeBand(normative) });
-    normCard.appendChild(text);
-    if (normative.source === 'Indicative') {
-      const caveat = createElement('div', {
-        className: 'tug-results__normative-caveat',
-        textContent: 'Indicative range from pooled studies; clinical TUG cutoffs are validated for older adults.',
-      });
-      normCard.appendChild(caveat);
-    }
-    const cutoff = createElement('div', {
-      className: 'tug-results__normative-caveat',
-      textContent: `Fall-risk threshold: ≥ ${TUG_FALL_RISK_S}s (Shumway-Cook).`,
-    });
-    normCard.appendChild(cutoff);
-  } else {
-    normCard.appendChild(createElement('div', {
-      textContent: 'Typical for healthy adults under 60: ~6-7s. Add your date of birth in Profile for an age-matched comparison.',
-    }));
-  }
-  metricsSection.appendChild(normCard);
-
-  // ── Clinical band card ───────────────────────────────────────
-  const bandCard = createElement('div', { className: 'assessment-results__metric-card' });
-  bandCard.style.background = bandColors.bg;
-  bandCard.appendChild(
+  headline.appendChild(
     createElement('span', {
-      className: 'assessment-results__metric-label',
-      textContent: 'Clinical interpretation',
+      className: 'tug-results__label',
+      textContent: 'Your TUG time',
     }),
   );
-  const bandValue = createElement('span', {
-    className: 'assessment-results__metric-value',
-    textContent: bandLabel,
-  });
-  bandValue.style.color = bandColors.text;
-  bandCard.appendChild(bandValue);
-  metricsSection.appendChild(bandCard);
+  headline.appendChild(timeBig);
+  metricsSection.appendChild(headline);
 
   // Walking aid
   const walkingAid = result.session_metadata.walking_aid ?? 'none';
@@ -159,59 +79,40 @@ export async function renderTugResults(container: HTMLElement): Promise<void> {
     metricsSection.appendChild(flagCard);
   }
 
-  // ── Walking gait (3 m walk-out segment) ──────────────────────
-  if ((m.walk_out_steps ?? 0) > 0) {
-    const gaitSection = createElement('section', { className: 'tug-results__phase-section' });
-    gaitSection.appendChild(
-      createElement('h2', {
-        className: 'tug-results__section-title',
-        textContent: 'Walking Gait (first 3 m)',
-      }),
-    );
-    const gaitGrid = createElement('div', { className: 'tug-results__gait-grid' });
-    gaitGrid.appendChild(createMetricCard('Gait speed', `${(m.walk_out_gait_speed_mps ?? 0).toFixed(2)} m/s`));
-    gaitGrid.appendChild(createMetricCard('Cadence', `${Math.round(m.walk_out_cadence_spm ?? 0)} spm`));
-    gaitGrid.appendChild(createMetricCard('Avg stride', `${(m.walk_out_avg_stride_length_m ?? 0).toFixed(2)} m`));
-    gaitGrid.appendChild(createMetricCard('Stride CV', `${((m.walk_out_stride_cv ?? 0) * 100).toFixed(1)}%`));
-    gaitGrid.appendChild(createMetricCard('Step time CV', `${((m.walk_out_step_time_cv ?? 0) * 100).toFixed(1)}%`));
-    gaitGrid.appendChild(createMetricCard('Steps', String(m.walk_out_steps ?? 0)));
-    gaitSection.appendChild(gaitGrid);
-    metricsSection.appendChild(gaitSection);
-  }
-
-  // ── Time to first step (soft proxy for stand-up duration) ────
-  if ((m.time_to_first_step_ms ?? 0) > 0) {
-    metricsSection.appendChild(
-      createMetricCard('Time to first step', `${((m.time_to_first_step_ms ?? 0) / 1000).toFixed(1)}s`),
-    );
-  }
-
-  // ── Whole-trial accel trace with replayed step detections ────
-  if (profile?.tug_step_calibration) {
-    const motionEvents = (result.raw_data ?? []).filter(isMotionEvent);
-    if (motionEvents.length >= 10) {
-      const startT = motionEvents[0].t;
-      const endT = motionEvents[motionEvents.length - 1].t;
-      const { samples, stepTimes } = replayMotionForVisualization(
-        motionEvents,
-        profile.tug_step_calibration,
-        startT,
-        endT,
-      );
-      ensureSparkStyles();
-      const traceSection = createElement('section', { className: 'tug-results__phase-section' });
-      traceSection.appendChild(
-        createElement('h2', {
-          className: 'tug-results__section-title',
-          textContent: 'Whole-trial accel trace',
-        }),
-      );
-      traceSection.appendChild(buildAccelSparkline(samples, stepTimes, {
-        legend: `${((endT - startT) / 1000).toFixed(1)} s of recording • ${stepTimes.length} steps detected by replay`,
-      }));
-      metricsSection.appendChild(traceSection);
-    }
-  }
+  // ── Participant-facing gait measurements ─────────────────────
+  const gaitSection = createElement('section', { className: 'tug-results__phase-section' });
+  gaitSection.appendChild(
+    createElement('h2', {
+      className: 'tug-results__section-title',
+      textContent: 'Gait measurements',
+    }),
+  );
+  const gaitGrid = createElement('div', { className: 'tug-results__gait-grid' });
+  gaitGrid.appendChild(
+    createMetricCard(
+      'Time to first step',
+      m.time_to_first_step_ms === undefined
+        ? '—'
+        : `${(m.time_to_first_step_ms / 1000).toFixed(1)}s`,
+    ),
+  );
+  gaitGrid.appendChild(
+    createMetricCard(
+      'Gait speed',
+      m.walk_out_gait_speed_mps === undefined ? '—' : `${m.walk_out_gait_speed_mps.toFixed(2)} m/s`,
+    ),
+  );
+  gaitGrid.appendChild(
+    createMetricCard(
+      'Average stride length',
+      m.walk_out_avg_stride_length_m === undefined
+        ? '—'
+        : `${m.walk_out_avg_stride_length_m.toFixed(2)} m`,
+    ),
+  );
+  gaitGrid.appendChild(createMetricCard('Number of steps', String(m.walk_out_steps ?? 0)));
+  gaitSection.appendChild(gaitGrid);
+  metricsSection.appendChild(gaitSection);
 
   // ── Comparison with previous TUG sessions ────────────────────
   const allResults = await getAllResults();
@@ -226,9 +127,7 @@ export async function renderTugResults(container: HTMLElement): Promise<void> {
         r.status === 'complete' &&
         !r.flagged,
     )
-    .sort(
-      (a, b) => new Date(b.timestamp_start).getTime() - new Date(a.timestamp_start).getTime(),
-    );
+    .sort((a, b) => new Date(b.timestamp_start).getTime() - new Date(a.timestamp_start).getTime());
 
   if (previousResults.length >= 1) {
     const lastSession = previousResults[0];
@@ -333,13 +232,13 @@ export async function renderTugResults(container: HTMLElement): Promise<void> {
   } else {
     wrapper.appendChild(counter);
 
-    const slider = createSaveDiscardSlider({
+    const decision = createResultDecision({
       onSave: doSave,
       onDiscard: doDiscard,
       requestDiscardReason: showDiscardDialog,
     });
 
-    wrapper.appendChild(slider);
+    wrapper.appendChild(decision);
     wrapper.appendChild(syncStatus);
     wrapper.appendChild(homeBtn);
     wrapper.appendChild(againBtn);
@@ -353,10 +252,13 @@ function showSyncFeedback(el: HTMLElement, localUuid: string): void {
 
   if (!navigator.onLine) {
     el.classList.add('assessment-results__sync--offline');
-    el.textContent = 'No internet connection. Your data is saved and will sync automatically when you reconnect.';
+    el.textContent =
+      'No internet connection. Your data is saved and will sync automatically when you reconnect.';
     setTimeout(() => {
       el.classList.add('assessment-results__sync--fade-out');
-      setTimeout(() => { el.style.display = 'none'; }, 300);
+      setTimeout(() => {
+        el.style.display = 'none';
+      }, 300);
     }, 3500);
     return;
   }
@@ -372,7 +274,8 @@ function showSyncFeedback(el: HTMLElement, localUuid: string): void {
       } else {
         const err = mod.lastSyncError;
         el.classList.add('assessment-results__sync--error');
-        el.textContent = err ?? 'Sync failed. Your data is saved locally — try again from the home screen.';
+        el.textContent =
+          err ?? 'Sync failed. Your data is saved locally — try again from the home screen.';
       }
     })
     .catch(() => {
@@ -383,8 +286,12 @@ function showSyncFeedback(el: HTMLElement, localUuid: string): void {
 
 function createMetricCard(label: string, value: string): HTMLElement {
   const card = createElement('div', { className: 'assessment-results__metric-card' });
-  card.appendChild(createElement('span', { className: 'assessment-results__metric-label', textContent: label }));
-  card.appendChild(createElement('span', { className: 'assessment-results__metric-value', textContent: value }));
+  card.appendChild(
+    createElement('span', { className: 'assessment-results__metric-label', textContent: label }),
+  );
+  card.appendChild(
+    createElement('span', { className: 'assessment-results__metric-value', textContent: value }),
+  );
   return card;
 }
 
@@ -396,6 +303,7 @@ style.textContent = `
     gap: var(--space-1);
     padding: var(--space-4);
     border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
   }
   .tug-results__label {
     font-size: var(--font-size-sm);
@@ -404,38 +312,11 @@ style.textContent = `
     letter-spacing: 0.05em;
     font-weight: var(--font-weight-semibold);
   }
-  .tug-results__time-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    flex-wrap: wrap;
-  }
   .tug-results__time-big {
     font-size: clamp(2.5rem, 10vw, 4rem);
     font-weight: var(--font-weight-bold);
     font-variant-numeric: tabular-nums;
     line-height: 1;
-  }
-  .tug-results__pill {
-    border: 1.5px solid;
-    padding: var(--space-1) var(--space-3);
-    border-radius: var(--radius-full);
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-semibold);
-  }
-  .tug-results__normative {
-    background: var(--color-bg-secondary);
-    border-radius: var(--radius-md);
-    padding: var(--space-3);
-    font-size: var(--font-size-sm);
-    line-height: var(--line-height-relaxed);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-  .tug-results__normative-caveat {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-secondary);
   }
   .tug-results__flag-warning {
     padding: var(--space-3) var(--space-4);
@@ -458,7 +339,7 @@ style.textContent = `
   }
   .tug-results__gait-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-2);
   }
   .tug-results__gait-grid .assessment-results__metric-card {
@@ -466,6 +347,11 @@ style.textContent = `
   }
   .tug-results__gait-grid .assessment-results__metric-value {
     font-size: var(--font-size-base);
+  }
+  @media (max-width: 22rem) {
+    .tug-results__gait-grid {
+      grid-template-columns: 1fr;
+    }
   }
 `;
 document.head.appendChild(style);

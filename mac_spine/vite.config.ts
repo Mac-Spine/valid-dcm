@@ -9,8 +9,8 @@ function loadCerts() {
 
   try {
     const files = fs.readdirSync(certDir);
-    const certFile = files.find(f => f.endsWith('.pem') && !f.includes('-key'));
-    const keyFile = files.find(f => f.endsWith('-key.pem'));
+    const certFile = files.find((f) => f.endsWith('.pem') && !f.includes('-key'));
+    const keyFile = files.find((f) => f.endsWith('-key.pem'));
     if (certFile && keyFile) {
       return {
         cert: fs.readFileSync(path.join(certDir, certFile)),
@@ -25,8 +25,15 @@ function loadCerts() {
 
 const https = loadCerts();
 
+// GitHub project sites use the repository name as their base path.
+// An owner.github.io repository is served from the domain root.
+const repositoryName = process.env.GITHUB_REPOSITORY?.split('/')[1];
+const pagesBase = repositoryName && !repositoryName.endsWith('.github.io')
+  ? `/${repositoryName}/`
+  : '/';
+
 export default defineConfig({
-  base: process.env.GITHUB_ACTIONS ? '/SpineApp/' : '/',
+  base: process.env.GITHUB_ACTIONS ? pagesBase : '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
@@ -44,9 +51,7 @@ export default defineConfig({
         type: 'module',
       },
       injectManifest: {
-        globPatterns: [
-          '**/*.{js,css,html,png,mp3,json}',
-        ],
+        globPatterns: ['**/*.{js,css,html,png,mp3,mp4,json}'],
       },
     }),
   ],

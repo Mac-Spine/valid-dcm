@@ -2,6 +2,7 @@ import type { AssessmentModule, ComputedMetrics, RawSessionData, InstructionConf
 import type { AssessmentResult } from '../../types/db-schemas';
 import { computeGripMetrics } from './grip-metrics';
 import { GRIP_PRACTICE_DURATION_MS, GRIP_DURATION_MS } from '../../constants';
+import { GRIP_INSTRUCTION_STEPS } from '../../content/assessment-instructions';
 
 export const gripModule: AssessmentModule = {
   id: 'grip_v1',
@@ -39,11 +40,10 @@ export const gripModule: AssessmentModule = {
   getInstructions(): InstructionConfig {
     return {
       title: 'Grip & Release Test',
-      body: 'Hold the phone sideways in your palm and grip with your fingers, then release. Repeat as fast as you can.',
+      body: GRIP_INSTRUCTION_STEPS.join(' '),
       importantPoints: [
-        'Rest the phone across your palm, screen facing up',
-        'Curl your fingers onto the screen, then release all at once',
-        'A grip counts when at least 3 fingers touch the screen at the same time',
+        'A grip counts when 3+ fingers touch the screen at the same time',
+        'Open your hand completely between grips',
         'The test lasts 10 seconds',
       ],
       showMeHow: true,

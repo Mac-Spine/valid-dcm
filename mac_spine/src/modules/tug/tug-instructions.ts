@@ -2,6 +2,7 @@ import { clearContainer, createElement } from '../../utils/dom';
 import { createButton } from '../../components/button';
 import { audioManager } from '../../utils/audio';
 import { getProfile } from '../../core/db';
+import { TUG_INSTRUCTION_STEPS } from '../../content/assessment-instructions';
 import { router } from '../../main';
 
 export async function renderTugInstructions(container: HTMLElement): Promise<void> {
@@ -54,7 +55,14 @@ export async function renderTugInstructions(container: HTMLElement): Promise<voi
     onClick: () => router.navigate('#/assessment/tug_v1/step_calibration'),
   });
 
-  const soundSection = createElement('div', { className: 'tug-instructions__sound-section' });
+  const safetySection = createElement('section', {
+    className: 'tug-instructions__safety',
+    'aria-labelledby': 'tug-instructions-safety-title',
+  });
+  const safetyTitle = createElement('h2', {
+    id: 'tug-instructions-safety-title',
+    textContent: 'Before you begin',
+  });
 
   const testSoundBtn = createButton({
     text: 'Test Sound',
@@ -72,31 +80,35 @@ export async function renderTugInstructions(container: HTMLElement): Promise<voi
 
   const volumeNote = createElement('p', {
     className: 'tug-instructions__volume-note',
-    textContent: 'Ensure your phone volume is turned up. You will hear a tone at the start, a beep at 3 meters, and a tone when the test ends.',
+    textContent:
+      'Ensure your phone volume is turned up and your ringer is on. You will hear a tone at the start, a beep at 3 meters, and a tone when the test ends.',
+  });
+  const emergencyNote = createElement('p', {
+    className: 'tug-instructions__emergency-note',
+    textContent: 'An emergency stop button is always available on screen during the test.',
   });
 
-  soundSection.appendChild(testSoundBtn);
-  soundSection.appendChild(volumeNote);
+  safetySection.appendChild(safetyTitle);
+  safetySection.appendChild(volumeNote);
+  safetySection.appendChild(emergencyNote);
+  safetySection.appendChild(testSoundBtn);
 
   const divider = createElement('hr', { className: 'tug-instructions__divider' });
 
-  const body = createElement('div', { className: 'assessment-instructions__body' });
-  body.innerHTML = '<p>Hold the phone flat against the center of your chest (sternum) throughout the test — the same placement used during step calibration.</p>';
-
   const steps = createElement('div', { className: 'assessment-instructions__important' });
-  steps.innerHTML = `
-    <ol class="tug-instructions__steps">
-      <li><strong>Do not turn off the screen</strong> &mdash; hold the phone against your sternum with the screen on</li>
-      <li>Sit in a chair with your back against the chair</li>
-      <li>Sit still &mdash; the test starts automatically after 3 seconds</li>
-      <li>When you hear the start tone, stand up and walk forward</li>
-      <li>You will hear a beep at 3 meters &mdash; turn around and walk back to the chair</li>
-      <li>Sit down and remain still &mdash; an end tone will mark the end of the test</li>
-    </ol>
-  `;
+  const instructionList = createElement('ol', { className: 'tug-instructions__steps' });
+  for (const instruction of TUG_INSTRUCTION_STEPS) {
+    instructionList.appendChild(createElement('li', { textContent: instruction }));
+  }
+  steps.appendChild(instructionList);
 
-  const helperNote = createElement('div', { className: 'tug-instructions__helper-note' });
-  helperNote.innerHTML = '<p><strong>Note:</strong> Hold the phone firmly so it does not shift during the test. An emergency stop button is always available on screen.</p>';
+  const visual = createElement('img', {
+    className: 'tug-instructions__visual',
+    alt: 'Five illustrated TUG test steps with the phone in a front trouser pocket: sit upright, stand at the start tone, walk until the beep, turn and walk back, then sit down',
+  }) as HTMLImageElement;
+  visual.src = `${import.meta.env.BASE_URL}images/tug-instructions.png`;
+  visual.width = 1024;
+  visual.height = 1536;
 
   const cancelBtn = createButton({
     text: 'Cancel',
@@ -105,31 +117,38 @@ export async function renderTugInstructions(container: HTMLElement): Promise<voi
   });
 
   wrapper.appendChild(title);
+  wrapper.appendChild(steps);
+  wrapper.appendChild(visual);
+  wrapper.appendChild(safetySection);
+  wrapper.appendChild(divider);
   wrapper.appendChild(readyBtn);
   wrapper.appendChild(calibrateBtn);
   wrapper.appendChild(stepCalBtn);
-  wrapper.appendChild(soundSection);
   wrapper.appendChild(cancelBtn);
-  wrapper.appendChild(divider);
-  wrapper.appendChild(body);
-  wrapper.appendChild(steps);
-  wrapper.appendChild(helperNote);
   container.appendChild(wrapper);
 }
 
 const style = document.createElement('style');
 style.textContent = `
-  .tug-instructions__sound-section {
+  .tug-instructions__safety {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
-  }
-  .tug-instructions__volume-note {
-    margin: 0;
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
     line-height: var(--line-height-relaxed);
-    text-align: center;
+  }
+  .tug-instructions__safety h2 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+  }
+  .tug-instructions__volume-note,
+  .tug-instructions__emergency-note {
+    margin: 0;
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+    line-height: var(--line-height-relaxed);
   }
 
   .tug-instructions__divider {
@@ -170,15 +189,13 @@ style.textContent = `
     justify-content: center;
     top: 2px;
   }
-  .tug-instructions__helper-note {
-    background: var(--color-bg-secondary);
-    padding: var(--space-4);
+  .tug-instructions__visual {
+    display: block;
+    width: 100%;
+    max-width: 28.625rem;
+    height: auto;
+    margin: 0 auto;
     border-radius: var(--radius-md);
-    line-height: var(--line-height-relaxed);
-  }
-  .tug-instructions__helper-note p {
-    margin: 0;
-    font-size: var(--font-size-base);
   }
 `;
 document.head.appendChild(style);
